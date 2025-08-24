@@ -71,9 +71,9 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         
       const computedStyle = getComputedStyle(document.documentElement);
       
-      const chartBackgroundColor = computedStyle.getPropertyValue('--card').trim();
-      const textColor = computedStyle.getPropertyValue('--card-foreground').trim();
-      const gridColor = computedStyle.getPropertyValue('--border').trim();
+      const chartBackgroundColor = `hsl(${computedStyle.getPropertyValue('--card').trim()})`;
+      const textColor = `hsl(${computedStyle.getPropertyValue('--card-foreground').trim()})`;
+      const gridColor = `hsl(${computedStyle.getPropertyValue('--border').trim()})`;
 
       const handleResize = () => {
         if (chartRef.current) {
@@ -87,21 +87,21 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         width: chartContainerRef.current.clientWidth,
         height: 500,
         layout: {
-          background: { type: ColorType.Solid, color: `hsl(${chartBackgroundColor})` },
-          textColor: `hsl(${textColor})`,
+          background: { type: ColorType.Solid, color: chartBackgroundColor },
+          textColor: textColor,
         },
         grid: {
-          vertLines: { color: `hsl(${gridColor})` },
-          horzLines: { color: `hsl(${gridColor})` },
+          vertLines: { color: gridColor },
+          horzLines: { color: gridColor },
         },
         crosshair: {
           mode: 1,
         },
         rightPriceScale: {
-          borderColor: `hsl(${gridColor})`,
+          borderColor: gridColor,
         },
         timeScale: {
-          borderColor: `hsl(${gridColor})`,
+          borderColor: gridColor,
         },
       });
       chartRef.current = chart;
