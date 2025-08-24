@@ -71,9 +71,14 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         
       const computedStyle = getComputedStyle(document.documentElement);
       
-      const chartBackgroundColor = `hsl(${computedStyle.getPropertyValue('--card').trim()})`;
-      const textColor = `hsl(${computedStyle.getPropertyValue('--card-foreground').trim()})`;
-      const gridColor = `hsl(${computedStyle.getPropertyValue('--border').trim()})`;
+      // Convert space-separated HSL values to comma-separated format for chart library compatibility
+      const cardHsl = computedStyle.getPropertyValue('--card').trim();
+      const cardForegroundHsl = computedStyle.getPropertyValue('--card-foreground').trim();
+      const borderHsl = computedStyle.getPropertyValue('--border').trim();
+      
+      const chartBackgroundColor = `hsl(${cardHsl.replace(/\s+/g, ', ')})`;
+      const textColor = `hsl(${cardForegroundHsl.replace(/\s+/g, ', ')})`;
+      const gridColor = `hsl(${borderHsl.replace(/\s+/g, ', ')})`;
 
       const handleResize = () => {
         if (chartRef.current) {
