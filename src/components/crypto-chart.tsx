@@ -108,13 +108,17 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
       };
       
+      // Get CSS custom properties
       const cardHsl = computedStyle.getPropertyValue('--card').trim();
       const cardForegroundHsl = computedStyle.getPropertyValue('--card-foreground').trim();
       const borderHsl = computedStyle.getPropertyValue('--border').trim();
       
-      const chartBackgroundColor = hslToHex(cardHsl);
-      const textColor = hslToHex(cardForegroundHsl);
-      const gridColor = hslToHex(borderHsl);
+      // Convert to hex, with fallbacks for better visibility
+      const chartBackgroundColor = cardHsl ? hslToHex(cardHsl) : '#1a1a1a';
+      const textColor = cardForegroundHsl ? hslToHex(cardForegroundHsl) : '#ffffff';
+      const gridColor = borderHsl ? hslToHex(borderHsl) : '#333333';
+
+      console.log('Chart colors:', { chartBackgroundColor, textColor, gridColor });
 
       const handleResize = () => {
         if (chartRef.current) {
@@ -140,9 +144,11 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         },
         rightPriceScale: {
           borderColor: gridColor,
+          textColor: textColor,
         },
         timeScale: {
           borderColor: gridColor,
+          textColor: textColor,
         },
       });
       chartRef.current = chart;
@@ -188,6 +194,12 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
 
     useEffect(() => {
       if (data && data.length > 0 && candlestickSeriesRef.current && volumeSeriesRef.current) {
+        console.log(`Setting chart data: ${data.length} items`, {
+          first: data[0],
+          last: data[data.length - 1],
+          sample: data.slice(0, 3)
+        });
+
         const candlestickData: CandlestickData[] = data.map((d) => ({
           time: d.time,
           open: d.open,
@@ -205,10 +217,29 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         volumeSeriesRef.current.setData(volumeData);
         
         chartRef.current?.timeScale().fitContent();
+        console.log('Chart data set successfully');
+      } else {
+        console.log('Chart data not ready:', { 
+          dataLength: data?.length, 
+          hasCandlestickSeries: !!candlestickSeriesRef.current,
+          hasVolumeSeries: !!volumeSeriesRef.current 
+        });
       }
     }, [data]);
     
-    return <div ref={chartContainerRef} className="rounded-lg" />;
+    return (
+      <div className="relative">
+        <div ref={chartContainerRef} className="rounded-lg min-h-[500px] w-full" />
+        {(!data || data.length === 0) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-card/50 rounded-lg">
+            <div className="text-center">
+              <div className="text-muted-foreground mb-2">No chart data available</div>
+              <div className="text-sm text-muted-foreground">Loading market data...</div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 );
 
