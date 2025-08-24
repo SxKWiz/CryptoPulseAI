@@ -41,6 +41,7 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
     const chartRef = useRef<IChartApi | null>(null);
     const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
     const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+    const hasInitialized = useRef(false);
 
     useImperativeHandle(ref, () => ({
       getChartDataUri: () => {
@@ -66,7 +67,13 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
     }));
 
     useEffect(() => {
-      if (!chartContainerRef.current) return;
+      if (!chartContainerRef.current || hasInitialized.current) return;
+        
+      const computedStyle = getComputedStyle(document.documentElement);
+      
+      const chartBackgroundColor = computedStyle.getPropertyValue('--card').trim();
+      const textColor = computedStyle.getPropertyValue('--card-foreground').trim();
+      const gridColor = computedStyle.getPropertyValue('--border').trim();
 
       const handleResize = () => {
         if (chartRef.current) {
@@ -80,21 +87,21 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         width: chartContainerRef.current.clientWidth,
         height: 500,
         layout: {
-          background: { type: ColorType.Solid, color: "hsl(var(--card))" },
-          textColor: "hsl(var(--card-foreground))",
+          background: { type: ColorType.Solid, color: `hsl(${chartBackgroundColor})` },
+          textColor: `hsl(${textColor})`,
         },
         grid: {
-          vertLines: { color: "hsl(var(--border))" },
-          horzLines: { color: "hsl(var(--border))" },
+          vertLines: { color: `hsl(${gridColor})` },
+          horzLines: { color: `hsl(${gridColor})` },
         },
         crosshair: {
           mode: 1,
         },
         rightPriceScale: {
-          borderColor: "hsl(var(--border))",
+          borderColor: `hsl(${gridColor})`,
         },
         timeScale: {
-          borderColor: "hsl(var(--border))",
+          borderColor: `hsl(${gridColor})`,
         },
       });
       chartRef.current = chart;
@@ -125,13 +132,16 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
       volumeSeriesRef.current = volumeSeries;
       
       chart.timeScale().fitContent();
+      hasInitialized.current = true;
 
       window.addEventListener("resize", handleResize);
       return () => {
         window.removeEventListener("resize", handleResize);
         if (chartRef.current) {
           chartRef.current.remove();
+          chartRef.current = null;
         }
+        hasInitialized.current = false;
       };
     }, []);
 
