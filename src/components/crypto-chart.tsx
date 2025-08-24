@@ -80,21 +80,21 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         width: chartContainerRef.current.clientWidth,
         height: 500,
         layout: {
-          background: { type: ColorType.Solid, color: "#212121" },
-          textColor: "rgba(255, 255, 255, 0.9)",
+          background: { type: ColorType.Solid, color: "hsl(var(--card))" },
+          textColor: "hsl(var(--card-foreground))",
         },
         grid: {
-          vertLines: { color: "rgba(197, 203, 206, 0.1)" },
-          horzLines: { color: "rgba(197, 203, 206, 0.1)" },
+          vertLines: { color: "hsl(var(--border))" },
+          horzLines: { color: "hsl(var(--border))" },
         },
         crosshair: {
           mode: 1,
         },
         rightPriceScale: {
-          borderColor: "rgba(197, 203, 206, 0.6)",
+          borderColor: "hsl(var(--border))",
         },
         timeScale: {
-          borderColor: "rgba(197, 203, 206, 0.6)",
+          borderColor: "hsl(var(--border))",
         },
       });
       chartRef.current = chart;

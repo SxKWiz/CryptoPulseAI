@@ -27,11 +27,11 @@ export async function getKlineData(
     // [0: open time, 1: open, 2: high, 3: low, 4: close, 5: volume, ...]
     const formattedData: KlineData[] = data.map((d: any) => ({
       time: (d[0] / 1000) as Time, // convert ms to seconds for lightweight-charts
-      open: parseFloat(d[1]),
-      high: parseFloat(d[2]),
-      low: parseFloat(d[3]),
-      close: parseFloat(d[4]),
-      volume: parseFloat(d[5]),
+      open: Number(d[1]),
+      high: Number(d[2]),
+      low: Number(d[3]),
+      close: Number(d[4]),
+      volume: Number(d[5]),
     }));
     return formattedData;
   } catch (error) {
