@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { AnalyzeCryptoFlashOutput } from "@/ai/flows/analyze-crypto-flash";
 import type { AnalyzeCryptoProOutput } from "@/ai/flows/analyze-crypto-pro";
 import { Zap, Gem, AlertTriangle, Lightbulb } from "lucide-react";
+import type { UTCTimestamp } from "lightweight-charts";
 
 type AnalysisResult = AnalyzeCryptoFlashOutput | AnalyzeCryptoProOutput;
 
@@ -54,6 +55,41 @@ export function CryptoDashboard() {
     }
     fetchData();
   }, [symbol, interval]);
+
+  useEffect(() => {
+    if (isLoading) return; // Don't connect until initial data is loaded
+
+    const ws = new WebSocket(
+      `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`
+    );
+
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      const kline = message.k;
+
+      const chartUpdate = {
+        time: (kline.t / 1000) as UTCTimestamp,
+        open: parseFloat(kline.o),
+        high: parseFloat(kline.h),
+        low: parseFloat(kline.l),
+        close: parseFloat(kline.c),
+        volume: parseFloat(kline.v),
+      };
+
+      chartRef.current?.updateCandlestick(chartUpdate);
+      chartRef.current?.updateVolume(chartUpdate);
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket Error:", error);
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [symbol, interval, isLoading]);
   
   const handleAnalysis = async () => {
     setIsAnalyzing(true);

@@ -14,6 +14,7 @@ import {
   type HistogramData,
   ColorType,
   LineStyle,
+  type UTCTimestamp,
 } from "lightweight-charts";
 import type { KlineData } from "@/lib/binance";
 
@@ -24,6 +25,14 @@ interface CryptoChartProps {
 
 export interface CryptoChartRef {
   getChartDataUri: () => string;
+  updateCandlestick: (kline: {
+    time: UTCTimestamp;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+  }) => void;
+  updateVolume: (kline: { time: UTCTimestamp; volume: number, open: number, close: number }) => void;
 }
 
 const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
@@ -39,6 +48,20 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
           return chartRef.current.takeScreenshot().toDataURL();
         }
         return "";
+      },
+      updateCandlestick: (kline) => {
+        if (candlestickSeriesRef.current) {
+          candlestickSeriesRef.current.update(kline);
+        }
+      },
+      updateVolume: (kline) => {
+        if (volumeSeriesRef.current) {
+          volumeSeriesRef.current.update({
+            time: kline.time,
+            value: kline.volume,
+            color: kline.close > kline.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)',
+          });
+        }
       },
     }));
 
