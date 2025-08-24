@@ -71,14 +71,50 @@ const CryptoChart = forwardRef<CryptoChartRef, CryptoChartProps>(
         
       const computedStyle = getComputedStyle(document.documentElement);
       
-      // Convert space-separated HSL values to comma-separated format for chart library compatibility
+      // Function to convert HSL values to hex format for chart library compatibility
+      const hslToHex = (hslString: string): string => {
+        const values = hslString.trim().split(/\s+/);
+        if (values.length !== 3) return '#000000'; // fallback to black
+        
+        const h = parseInt(values[0]) / 360;
+        const s = parseInt(values[1]) / 100;
+        const l = parseInt(values[2]) / 100;
+        
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs(((h * 6) % 2) - 1));
+        const m = l - c / 2;
+        
+        let r = 0, g = 0, b = 0;
+        
+        if (0 <= h && h < 1/6) {
+          r = c; g = x; b = 0;
+        } else if (1/6 <= h && h < 2/6) {
+          r = x; g = c; b = 0;
+        } else if (2/6 <= h && h < 3/6) {
+          r = 0; g = c; b = x;
+        } else if (3/6 <= h && h < 4/6) {
+          r = 0; g = x; b = c;
+        } else if (4/6 <= h && h < 5/6) {
+          r = x; g = 0; b = c;
+        } else if (5/6 <= h && h < 1) {
+          r = c; g = 0; b = x;
+        }
+        
+        r = Math.round((r + m) * 255);
+        g = Math.round((g + m) * 255);
+        b = Math.round((b + m) * 255);
+        
+        const toHex = (n: number) => n.toString(16).padStart(2, '0');
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+      };
+      
       const cardHsl = computedStyle.getPropertyValue('--card').trim();
       const cardForegroundHsl = computedStyle.getPropertyValue('--card-foreground').trim();
       const borderHsl = computedStyle.getPropertyValue('--border').trim();
       
-      const chartBackgroundColor = `hsl(${cardHsl.replace(/\s+/g, ', ')})`;
-      const textColor = `hsl(${cardForegroundHsl.replace(/\s+/g, ', ')})`;
-      const gridColor = `hsl(${borderHsl.replace(/\s+/g, ', ')})`;
+      const chartBackgroundColor = hslToHex(cardHsl);
+      const textColor = hslToHex(cardForegroundHsl);
+      const gridColor = hslToHex(borderHsl);
 
       const handleResize = () => {
         if (chartRef.current) {
