@@ -39,6 +39,7 @@ export function CryptoDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [dataSource, setDataSource] = useState<"api" | "mock">("api");
   const chartRef = useRef<CryptoChartRef>(null);
   const { toast } = useToast();
 
@@ -48,8 +49,23 @@ export function CryptoDashboard() {
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const data = await getKlineData(symbol, interval);
-      setKlineData(data);
+      try {
+        const data = await getKlineData(symbol, interval);
+        setKlineData(data);
+        
+        // Check if we're using mock data (mock data will have very recent timestamps)
+        if (data.length > 0) {
+          const lastTimestamp = data[data.length - 1].time as number;
+          const now = Date.now() / 1000;
+          const isRecent = (now - lastTimestamp) < 300; // Within 5 minutes
+          setDataSource(isRecent ? "mock" : "api");
+        }
+        
+        console.log(`Loaded ${data.length} candlesticks for ${symbol}`, data.slice(0, 3));
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setDataSource("mock");
+      }
       setIsLoading(false);
       setAnalysisResult(null); // Clear previous analysis on data change
     }
@@ -59,37 +75,90 @@ export function CryptoDashboard() {
   useEffect(() => {
     if (isLoading) return; // Don't connect until initial data is loaded
 
-    const ws = new WebSocket(
-      `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`
-    );
+    let ws: WebSocket | null = null;
+    let mockInterval: NodeJS.Timeout | null = null;
 
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      const kline = message.k;
+    try {
+      ws = new WebSocket(
+        `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`
+      );
 
-      const chartUpdate = {
-        time: (kline.t / 1000) as UTCTimestamp,
-        open: parseFloat(kline.o),
-        high: parseFloat(kline.h),
-        low: parseFloat(kline.l),
-        close: parseFloat(kline.c),
-        volume: parseFloat(kline.v),
+      ws.onopen = () => {
+        console.log("WebSocket connected");
       };
 
-      chartRef.current?.updateCandlestick(chartUpdate);
-      chartRef.current?.updateVolume(chartUpdate);
-    };
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        const kline = message.k;
 
-    ws.onerror = (error) => {
-      console.error("WebSocket Error:", error);
-    };
+        const chartUpdate = {
+          time: (kline.t / 1000) as UTCTimestamp,
+          open: parseFloat(kline.o),
+          high: parseFloat(kline.h),
+          low: parseFloat(kline.l),
+          close: parseFloat(kline.c),
+          volume: parseFloat(kline.v),
+        };
+
+        chartRef.current?.updateCandlestick(chartUpdate);
+        chartRef.current?.updateVolume(chartUpdate);
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket Error:", error);
+        // Fallback to mock updates when WebSocket fails
+        startMockUpdates();
+      };
+
+      ws.onclose = (event) => {
+        console.log("WebSocket closed:", event.code, event.reason);
+        if (event.code !== 1000) { // Not a normal closure
+          startMockUpdates();
+        }
+      };
+    } catch (error) {
+      console.error("Failed to create WebSocket:", error);
+      startMockUpdates();
+    }
+
+    function startMockUpdates() {
+      if (mockInterval) return; // Already running
+      
+      console.log("Starting mock real-time updates");
+      mockInterval = setInterval(() => {
+        if (klineData.length === 0) return;
+        
+        const lastCandle = klineData[klineData.length - 1];
+        const now = Date.now() / 1000;
+        
+        // Generate realistic price movement
+        const volatility = 0.001; // 0.1% volatility per update
+        const change = (Math.random() - 0.5) * volatility;
+        const newPrice = lastCandle.close * (1 + change);
+        
+        const mockUpdate = {
+          time: now as UTCTimestamp,
+          open: lastCandle.close,
+          high: Math.max(lastCandle.close, newPrice),
+          low: Math.min(lastCandle.close, newPrice),
+          close: newPrice,
+          volume: Math.random() * 10 + 1,
+        };
+
+        chartRef.current?.updateCandlestick(mockUpdate);
+        chartRef.current?.updateVolume(mockUpdate);
+      }, 5000); // Update every 5 seconds
+    }
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
+      if (mockInterval) {
+        clearInterval(mockInterval);
+      }
     };
-  }, [symbol, interval, isLoading]);
+  }, [symbol, interval, isLoading, klineData]);
   
   const handleAnalysis = async () => {
     setIsAnalyzing(true);
@@ -208,7 +277,14 @@ export function CryptoDashboard() {
             <Card>
                 <CardHeader>
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <CardTitle>{symbol} Chart</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle>{symbol} Chart</CardTitle>
+                      {dataSource === "mock" && (
+                        <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20 dark:bg-yellow-400/10 dark:text-yellow-500 dark:ring-yellow-400/20">
+                          Demo Data
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Select value={symbol} onValueChange={setSymbol}>
                         <SelectTrigger className="w-[140px]">
