@@ -29,8 +29,9 @@ function generateMockData(symbol: string, interval: string, limit: number): Klin
   const data: KlineData[] = [];
   let currentPrice = basePrice;
   
-  for (let i = limit - 1; i >= 0; i--) {
-    const time = (now - (i * intervalMs)) / 1000;
+  // Start from the earliest time and go forward
+  for (let i = 0; i < limit; i++) {
+    const time = (now - ((limit - 1 - i) * intervalMs)) / 1000;
     const volatility = 0.015; // 1.5% volatility
     const trend = Math.sin(i * 0.05) * 0.005; // Subtle wave pattern
     
@@ -61,7 +62,7 @@ function generateMockData(symbol: string, interval: string, limit: number): Klin
     currentPrice = closePrice;
   }
   
-  return data.reverse(); // Reverse to get chronological order
+  return data; // Data is already in chronological order
 }
 
 export async function getKlineData(
